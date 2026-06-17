@@ -28,7 +28,6 @@ Invoke them by name (e.g., `/office-hours`).
 | Skill | What it does |
 |-------|-------------|
 | `/review` | Pre-landing PR review. Finds bugs that pass CI but break in prod. |
-| `/codex` | Second opinion via OpenAI Codex. Review, challenge, or consult modes. |
 | `/investigate` | Systematic root-cause debugging. No fixes without investigation. |
 | `/design-review` | Live-site visual audit + fix loop with atomic commits. |
 | `/design-shotgun` | Generate multiple AI design variants, comparison board, iterate. |
@@ -56,16 +55,10 @@ Invoke them by name (e.g., `/office-hours`).
 
 | Skill | What it does |
 |-------|-------------|
-| `/context-save` | Save working context (git state, decisions, remaining work). |
-| `/context-restore` | Resume from a saved context, even across Conductor workspaces. |
 | `/learn` | Manage what gstack learned across sessions. |
 | `/retro` | Weekly retro with per-person breakdowns and shipping streaks. |
 | `/health` | Code quality dashboard (type checker, linter, tests, dead code). |
-| `/benchmark` | Performance regression detection (page load, Core Web Vitals). |
-| `/benchmark-models` | Cross-model benchmark for skills (Claude, GPT, Gemini side-by-side). |
 | `/cso` | OWASP Top 10 + STRIDE security audit. |
-| `/setup-gbrain` | Set up gbrain for cross-machine session memory sync. |
-| `/sync-gbrain` | Keep gbrain current with this repo's code; refresh agent search guidance in CLAUDE.md. |
 
 ### Browser + agent integration
 
@@ -75,25 +68,6 @@ Invoke them by name (e.g., `/office-hours`).
 | `/open-gstack-browser` | Launch the visible GStack Browser with sidebar + stealth. |
 | `/setup-browser-cookies` | Import cookies from your real browser for authenticated testing. |
 | `/pair-agent` | Pair a remote AI agent (OpenClaw, Codex, etc.) with your browser. |
-
-### iOS QA — drive real iPhones over USB or Tailscale (v1.43.0.0+)
-
-| Skill | What it does |
-|-------|-------------|
-| `/ios-qa` | Live-device iOS QA via USB CoreDevice tunnel + embedded StateServer. Optionally exposes the device over Tailscale so remote agents can drive it. |
-| `/ios-fix` | Autonomous iOS bug fixer with regression snapshot capture. |
-| `/ios-design-review` | Designer's-eye QA on a real iPhone — 10-dimension Apple HIG rubric. |
-| `/ios-clean` | Convenience: strip DebugBridge + #if DEBUG wiring before a Release build. |
-| `/ios-sync` | Regenerate the iOS debug bridge against the latest upstream templates. |
-
-Companion CLIs (run on the Mac that's plugged into the device):
-
-| Command | What it does |
-|---------|-------------|
-| `gstack-ios-qa-daemon` | Mac-side broker. Loopback by default; `--tailnet` adds a Tailscale-facing listener with capability tiers and audit logging. |
-| `gstack-ios-qa-mint` | Owner-grant CLI for the tailnet allowlist (`grant`/`revoke`/`list`). |
-
-End-to-end walkthrough: [docs/howto-ios-testing-with-gstack.md](docs/howto-ios-testing-with-gstack.md).
 
 ### Safety + scoping
 
