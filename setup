@@ -546,7 +546,7 @@ link_claude_skill_dirs() {
       dir_name="$(basename "$skill_dir")"
       # Skip node_modules
       [ "$dir_name" = "node_modules" ] && continue
-      # Use frontmatter name: if present (e.g., run-tests/ with name: test → symlink as "test")
+      # Use frontmatter name: if present (e.g., run-tests/ with name: test → install as "test")
       skill_name=$(grep -m1 '^name:' "$skill_dir/SKILL.md" 2>/dev/null | sed 's/^name:[[:space:]]*//' | tr -d '[:space:]')
       [ -z "$skill_name" ] && skill_name="$dir_name"
       # Apply gstack- prefix unless --no-prefix or already prefixed
@@ -559,29 +559,24 @@ link_claude_skill_dirs() {
         link_name="$skill_name"
       fi
       target="$skills_dir/$link_name"
-      # Upgrade old directory symlinks to real directories
+      # Remove old directory symlinks
       if [ -L "$target" ]; then
         rm -f "$target"
       fi
-      # Create real directory with symlinked SKILL.md (absolute path)
-      # Use mkdir -p unconditionally (idempotent) to avoid TOCTOU race
       mkdir -p "$target"
-      # Validate target isn't a symlink before creating the link
+      # Copy SKILL.md directly (no symlink)
       if [ -L "$target/SKILL.md" ]; then rm "$target/SKILL.md"; fi
-      _link_or_copy "$gstack_dir/$dir_name/SKILL.md" "$target/SKILL.md"
-      # Link the sections/ subdir for carved skills (v2 plan T9). The prefixed
-      # Claude skill dir otherwise holds only SKILL.md, so a runtime
-      # "Read sections/<name>.md" 404s. Route through _link_or_copy so Windows
-      # gets a fresh copy (and re-copies on every ./setup, refreshing staleness).
+      cp -f "$gstack_dir/$dir_name/SKILL.md" "$target/SKILL.md"
+      # Copy sections/ subdir for carved skills
       if [ -d "$gstack_dir/$dir_name/sections" ]; then
         if [ -e "$target/sections" ] || [ -L "$target/sections" ]; then rm -rf "$target/sections"; fi
-        _link_or_copy "$gstack_dir/$dir_name/sections" "$target/sections"
+        cp -R "$gstack_dir/$dir_name/sections" "$target/sections"
       fi
       linked+=("$link_name")
     fi
   done
   if [ ${#linked[@]} -gt 0 ]; then
-    echo "  linked skills: ${linked[*]}"
+    echo "  installed skills: ${linked[*]}"
     _print_windows_copy_note_once
   fi
 }
@@ -601,9 +596,8 @@ link_claude_root_skill_alias() {
   fi
   mkdir -p "$target"
   if [ -L "$target/SKILL.md" ]; then rm "$target/SKILL.md"; fi
-  _link_or_copy "$gstack_dir/SKILL.md" "$target/SKILL.md"
-  echo "  linked root skill alias: gstack"
-  _print_windows_copy_note_once
+  cp -f "$gstack_dir/SKILL.md" "$target/SKILL.md"
+  echo "  installed root skill alias: gstack"
 }
 
 # ─── Helper: remove old unprefixed Claude skill entries ───────────────────────
@@ -638,11 +632,10 @@ cleanup_old_claude_symlinks() {
             removed+=("$skill_name")
             ;;
         esac
-      # Windows install pattern: real dir with real-file SKILL.md (no symlink
-      # available, so we can't readlink to verify provenance). The outer loop
-      # iterates known gstack skill names from "$gstack_dir"/*, so a name match
-      # plus IS_WINDOWS is safe to treat as gstack-managed during a mode flip.
-      elif [ "$IS_WINDOWS" -eq 1 ] && [ -d "$old_target" ] && [ -f "$old_target/SKILL.md" ]; then
+      # Real dir with real-file SKILL.md — direct-copy install or Windows.
+      # The outer loop iterates known gstack skill names, so a name match is
+      # safe to treat as gstack-managed during a mode flip.
+      elif [ -d "$old_target" ] && [ -f "$old_target/SKILL.md" ]; then
         rm -rf "$old_target"
         removed+=("$skill_name")
       fi
@@ -686,10 +679,8 @@ cleanup_prefixed_claude_symlinks() {
             removed+=("gstack-$skill_name")
             ;;
         esac
-      # Windows install pattern: real dir with real-file SKILL.md. Same
-      # reasoning as cleanup_old_claude_symlinks — directory name match plus
-      # IS_WINDOWS is safe during a mode flip.
-      elif [ "$IS_WINDOWS" -eq 1 ] && [ -d "$prefixed_target" ] && [ -f "$prefixed_target/SKILL.md" ]; then
+      # Real dir with real-file SKILL.md — direct-copy install or Windows.
+      elif [ -d "$prefixed_target" ] && [ -f "$prefixed_target/SKILL.md" ]; then
         rm -rf "$prefixed_target"
         removed+=("gstack-$skill_name")
       fi
@@ -1005,8 +996,15 @@ if [ "$INSTALL_CLAUDE" -eq 1 ]; then
     if [ "$SKILL_PREFIX" -eq 1 ]; then
       _OGB_LINK="$INSTALL_SKILLS_DIR/gstack-connect-chrome"
     fi
-    if [ -L "$_OGB_LINK" ] || [ ! -e "$_OGB_LINK" ]; then
-      _link_or_copy "gstack/open-gstack-browser" "$_OGB_LINK"
+    if [ ! -e "$_OGB_LINK" ]; then
+      if [ -f "$SOURCE_GSTACK_DIR/open-gstack-browser/SKILL.md" ]; then
+        rm -rf "$_OGB_LINK"
+        mkdir -p "$_OGB_LINK"
+        cp -f "$SOURCE_GSTACK_DIR/open-gstack-browser/SKILL.md" "$_OGB_LINK/SKILL.md"
+        if [ -d "$SOURCE_GSTACK_DIR/open-gstack-browser/sections" ]; then
+          cp -R "$SOURCE_GSTACK_DIR/open-gstack-browser/sections" "$_OGB_LINK/sections"
+        fi
+      fi
     fi
     if [ "$LOCAL_INSTALL" -eq 1 ]; then
       log "gstack ready (project-local)."
@@ -1073,8 +1071,15 @@ if [ "$INSTALL_CLAUDE" -eq 1 ]; then
       if [ "$SKILL_PREFIX" -eq 1 ]; then
         _OGB_LINK="$INSTALL_SKILLS_DIR/gstack-connect-chrome"
       fi
-      if [ -L "$_OGB_LINK" ] || [ ! -e "$_OGB_LINK" ]; then
-        _link_or_copy "gstack/open-gstack-browser" "$_OGB_LINK"
+      if [ ! -e "$_OGB_LINK" ]; then
+        if [ -f "$SOURCE_GSTACK_DIR/open-gstack-browser/SKILL.md" ]; then
+          rm -rf "$_OGB_LINK"
+          mkdir -p "$_OGB_LINK"
+          cp -f "$SOURCE_GSTACK_DIR/open-gstack-browser/SKILL.md" "$_OGB_LINK/SKILL.md"
+          if [ -d "$SOURCE_GSTACK_DIR/open-gstack-browser/sections" ]; then
+            cp -R "$SOURCE_GSTACK_DIR/open-gstack-browser/sections" "$_OGB_LINK/sections"
+          fi
+        fi
       fi
       log "gstack ready (claude)."
       log "  browse: $BROWSE_BIN"

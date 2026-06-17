@@ -24,11 +24,11 @@ function fnBody(src: string, name: string): string {
 }
 
 describe('setup links sections/ for cherry-pick install targets', () => {
-  test('link_claude_skill_dirs links sections/ via _link_or_copy', () => {
+  test('link_claude_skill_dirs copies sections/ directly', () => {
     const body = fnBody(SETUP, 'link_claude_skill_dirs');
     expect(body).toContain('sections');
-    // sections install must route through the windows-safe helper, not raw ln.
-    expect(body).toMatch(/_link_or_copy\s+"\$gstack_dir\/\$dir_name\/sections"\s+"\$target\/sections"/);
+    // sections install must use cp -R (direct copy, no symlink).
+    expect(body).toMatch(/cp -R\s+"\$gstack_dir\/\$dir_name\/sections"\s+"\$target\/sections"/);
     expect(body).toMatch(/if \[ -d "\$gstack_dir\/\$dir_name\/sections" \]/);
   });
 

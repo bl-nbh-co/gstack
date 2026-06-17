@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gstack-relink — re-create skill symlinks based on skill_prefix config
+# gstack-relink — re-install skill files based on skill_prefix config
 #
 # Usage:
 #   gstack-relink
@@ -36,26 +36,28 @@ SKILLS_DIR="${GSTACK_SKILLS_DIR:-$(dirname "$INSTALL_DIR")}"
 # Read prefix setting
 PREFIX=$("$GSTACK_CONFIG" get skill_prefix 2>/dev/null || echo "false")
 
-# Helper: remove old skill entry (symlink or real directory with symlinked SKILL.md)
+# Helper: remove old skill entry (symlink, real directory with symlinked SKILL.md,
+# or real directory with copied SKILL.md from a direct-copy install)
 _cleanup_skill_entry() {
   local entry="$1"
   if [ -L "$entry" ]; then
     rm -f "$entry"
-  elif [ -d "$entry" ] && [ -L "$entry/SKILL.md" ]; then
+  elif [ -d "$entry" ] && [ -f "$entry/SKILL.md" ]; then
     rm -rf "$entry"
   fi
 }
 
-_link_root_skill_alias() {
+_install_root_skill_alias() {
   local target="$SKILLS_DIR/_gstack-command"
 
   [ -f "$INSTALL_DIR/SKILL.md" ] || return 0
   [ -L "$target" ] && rm -f "$target"
   mkdir -p "$target"
-  ln -snf "$INSTALL_DIR/SKILL.md" "$target/SKILL.md"
+  if [ -L "$target/SKILL.md" ]; then rm "$target/SKILL.md"; fi
+  cp -f "$INSTALL_DIR/SKILL.md" "$target/SKILL.md"
 }
 
-_link_root_skill_alias
+_install_root_skill_alias
 
 # Discover skills (directories with SKILL.md, excluding meta dirs)
 SKILL_COUNT=0
@@ -78,16 +80,22 @@ for skill_dir in "$INSTALL_DIR"/*/; do
     link_name="$skill"
     # Don't remove gstack-* dirs that are their real name (e.g., gstack-upgrade)
     case "$skill" in
-      gstack-*) ;; # Already the real name, no old prefixed link to clean
+      gstack-*) ;; # Already the real name, no old prefixed entry to clean
       *)        _cleanup_skill_entry "$SKILLS_DIR/gstack-$skill" ;;
     esac
   fi
   target="$SKILLS_DIR/$link_name"
-  # Upgrade old directory symlinks to real directories
+  # Remove old directory symlinks
   [ -L "$target" ] && rm -f "$target"
-  # Create real directory with symlinked SKILL.md (absolute path)
+  # Install SKILL.md as a real file copy
   mkdir -p "$target"
-  ln -snf "$INSTALL_DIR/$skill/SKILL.md" "$target/SKILL.md"
+  if [ -L "$target/SKILL.md" ]; then rm "$target/SKILL.md"; fi
+  cp -f "$INSTALL_DIR/$skill/SKILL.md" "$target/SKILL.md"
+  # Copy sections/ subdir for carved skills
+  if [ -d "$INSTALL_DIR/$skill/sections" ]; then
+    if [ -e "$target/sections" ] || [ -L "$target/sections" ]; then rm -rf "$target/sections"; fi
+    cp -R "$INSTALL_DIR/$skill/sections" "$target/sections"
+  fi
   SKILL_COUNT=$((SKILL_COUNT + 1))
 done
 
@@ -95,7 +103,7 @@ done
 "$INSTALL_DIR/bin/gstack-patch-names" "$INSTALL_DIR" "$PREFIX"
 
 if [ "$PREFIX" = "true" ]; then
-  echo "Relinked $SKILL_COUNT skills as gstack-*"
+  echo "Reinstalled $SKILL_COUNT skills as gstack-*"
 else
-  echo "Relinked $SKILL_COUNT skills as flat names"
+  echo "Reinstalled $SKILL_COUNT skills as flat names"
 fi
