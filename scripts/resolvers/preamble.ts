@@ -71,9 +71,9 @@ export { generateTestFailureTriage } from './preamble/generate-test-failure-tria
 // T4: (same as T3 — TEST_FAILURE_TRIAGE is a separate {{}} placeholder, not preamble)
 //
 // Skills by tier:
-//   T1: browse, setup-cookies, benchmark
-//   T2: investigate, cso, retro, doc-release, setup-deploy, canary, context-save, context-restore, health
-//   T3: autoplan, codex, design-consult, office-hours, ceo/design/eng-review
+//   T1: browse, setup-cookies
+//   T2: investigate, cso, retro, doc-release, setup-deploy, canary, health
+//   T3: autoplan, design-consult, office-hours, ceo/design/eng-review
 //   T4: ship, review, qa, qa-only, design-review, land-deploy
 export function generatePreamble(ctx: TemplateContext): string {
   const tier = ctx.preambleTier ?? 4;
